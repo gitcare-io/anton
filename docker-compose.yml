@@ -1,0 +1,33 @@
+version: "3"
+services:
+  # anton_api:
+  #   container_name: anton_api
+  #   build: .
+  #   volumes:
+  #     - .:/usr/src/app
+  #   command: cargo watch -x run
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     - anton_postgres_write
+  #     - anton_postgres_read
+
+  anton_postgres_write:
+    container_name: anton_postgres_write
+    image: postgres:9.6
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: developer
+      POSTGRES_PASSWORD: developer
+      POSTGRES_DB: anton_write
+
+  anton_postgres_read:
+    container_name: anton_postgres_read
+    image: postgres:9.6
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: developer
+      POSTGRES_PASSWORD: developer
+      POSTGRES_DB: anton_read
