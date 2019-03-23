@@ -1,7 +1,5 @@
-mod user_controller;
+pub mod controller;
 
 pub fn user_routes() -> Vec<rocket::Route> {
-    routes![
-        user_controller::register
-    ]
+    routes![]
 }
