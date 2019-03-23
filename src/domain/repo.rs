@@ -1,6 +1,9 @@
 use super::user::User;
 
 #[allow(dead_code)]
+#[derive(Clone)]
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct Repo {
     id: u64,
     node_id: String,

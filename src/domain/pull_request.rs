@@ -2,9 +2,15 @@ use super::base::Base;
 use super::href::Href;
 use super::label::Label;
 use super::user::User;
+use crate::application::command::pull_request_open_command::PullRequestOpenCommand;
+use crate::application::event::pull_request_opened_event::PullRequestOpenedEvent;
+use crate::application::event::Event;
+use crate::infrastructure::event_bus::EVENT_BUS;
 use std::collections::HashMap;
 
 #[allow(dead_code)]
+#[derive(Clone, Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct PullRequest {
     url: String,
     id: u64,
@@ -24,10 +30,10 @@ pub struct PullRequest {
     closed_at: Option<String>,
     merged_at: Option<String>,
     merge_commit_sha: Option<String>,
-    assignee: User,
+    assignee: Option<User>,
     assignees: Vec<User>,
     requested_reviewers: Vec<User>,
-    // requested_teams: [], // FIXME: ??
+    // requested_teams: [], // FIXME:
     labels: Vec<Label>,
     // milestone: null, Option<> // FIXME:
     commits_url: String,
@@ -52,4 +58,18 @@ pub struct PullRequest {
     additions: u64,
     deletions: u64,
     changed_files: u64,
+}
+
+impl PullRequest {
+    pub fn open(&self, command: PullRequestOpenCommand) -> () {
+        let mut data = PullRequestOpenedEvent {
+            action: command.action,
+            number: command.number,
+            pull_request: command.pull_request,
+            label: command.label,
+            sender: command.sender,
+            installation: command.installation,
+        };
+        post_event!(&EVENT_BUS, &mut data, PullRequestOpenedEvent);
+    }
 }

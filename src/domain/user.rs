@@ -1,4 +1,7 @@
 #[allow(dead_code)]
+#[derive(Clone)]
+#[derive(Serialize, Deserialize)]
+#[derive(Debug)]
 pub struct User {
     login: String,
     id: u64,
