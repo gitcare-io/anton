@@ -19,6 +19,8 @@ pub mod read_schema;
 pub mod write_schema;
 
 fn main() {
+    dotenv::dotenv().ok();
+
     infrastructure::event_bus::register::register_events();
 
     rocket::ignite()

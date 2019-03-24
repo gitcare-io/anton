@@ -1,11 +1,9 @@
-use super::user::User;
+use crate::domain::user::User;
 
 #[allow(dead_code)]
-#[derive(Clone)]
-#[derive(Serialize, Deserialize)]
-#[derive(Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Repo {
-    id: u64,
+    pub id: u64,
     node_id: String,
     name: String,
     full_name: String,

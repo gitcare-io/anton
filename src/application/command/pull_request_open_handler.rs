@@ -1,21 +1,8 @@
-use rocket_contrib::json::Json;
 use crate::application::command::pull_request_open_command::PullRequestOpenCommand;
+use crate::domain::pull_request::PullRequest;
 
-pub struct PullRequestOpenCommandHandler {
-    // event_repository: ORMEventRepository, // TODO: eventRepo
-}
+pub struct PullRequestOpenCommandHandler {}
 
 impl PullRequestOpenCommandHandler {
-    pub fn new() -> Self {
-        Self {
-            // event_repository: ORMEventRepository::new() // TODO: eventRepo
-        }
-    }
-
-    pub fn handle(&self, command: (PullRequestOpenCommand, Json<PullRequestOpenCommand>)) -> () {
-        println!("{:?}", command.1);
-        // TODO: eventRepo
-        // command.pull_request
-        // added_user.register_user();
-    }
+    pub fn handle(command: PullRequestOpenCommand) -> () { PullRequest::open(command); }
 }

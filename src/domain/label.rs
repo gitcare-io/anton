@@ -1,7 +1,5 @@
 #[allow(dead_code)]
-#[derive(Clone)]
-#[derive(Serialize, Deserialize)]
-#[derive(Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct Label {
     id: u64,
     node_id: String,

@@ -1,19 +1,14 @@
-use super::base::Base;
-use super::href::Href;
-use super::label::Label;
-use super::user::User;
 use crate::application::command::pull_request_open_command::PullRequestOpenCommand;
 use crate::application::event::pull_request_opened_event::PullRequestOpenedEvent;
-use crate::application::event::Event;
+use crate::domain::{base::Base, href::Href, label::Label, user::User};
 use crate::infrastructure::event_bus::EVENT_BUS;
 use std::collections::HashMap;
 
 #[allow(dead_code)]
-#[derive(Clone, Serialize, Deserialize)]
-#[derive(Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct PullRequest {
     url: String,
-    id: u64,
+    pub id: u64,
     node_id: String,
     html_url: String,
     diff_url: String,
@@ -42,7 +37,7 @@ pub struct PullRequest {
     comments_url: String,
     statuses_url: String,
     head: Base,
-    base: Base,
+    pub base: Base,
     _links: HashMap<String, Href>,
     author_association: String,
     draft: bool,
@@ -61,8 +56,9 @@ pub struct PullRequest {
 }
 
 impl PullRequest {
-    pub fn open(&self, command: PullRequestOpenCommand) -> () {
-        let mut data = PullRequestOpenedEvent {
+    #[allow(deprecated)]
+    pub fn open(command: PullRequestOpenCommand) -> () {
+        let mut event = PullRequestOpenedEvent {
             action: command.action,
             number: command.number,
             pull_request: command.pull_request,
@@ -70,6 +66,6 @@ impl PullRequest {
             sender: command.sender,
             installation: command.installation,
         };
-        post_event!(&EVENT_BUS, &mut data, PullRequestOpenedEvent);
+        post_event!(&EVENT_BUS, &mut event, PullRequestOpenedEvent);
     }
 }

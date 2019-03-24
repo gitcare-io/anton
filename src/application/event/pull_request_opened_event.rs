@@ -1,11 +1,11 @@
 use eventbus::Event;
 
-use crate::domain::installation::Installation;
-use crate::domain::label::Label;
-use crate::domain::pull_request::PullRequest;
-use crate::domain::user::User;
+use crate::domain::{
+    installation::Installation, label::Label, pull_request::PullRequest, user::User,
+};
 
 #[allow(dead_code)]
+#[derive(Serialize, Deserialize)]
 pub struct PullRequestOpenedEvent {
     pub action: String,
     pub number: u64,

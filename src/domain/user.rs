@@ -1,10 +1,8 @@
 #[allow(dead_code)]
-#[derive(Clone)]
-#[derive(Serialize, Deserialize)]
-#[derive(Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct User {
     login: String,
-    id: u64,
+    pub id: u64,
     node_id: String,
     avatar_url: String,
     gravatar_id: String,

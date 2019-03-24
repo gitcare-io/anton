@@ -1,22 +1,30 @@
-use diesel::prelude::*;
 use diesel::pg::PgConnection;
-use dotenv::dotenv;
+use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use std::env;
 
-pub struct ConnectionManager {
-    pub connection_write: PgConnection,
-    pub connection_read: PgConnection,
+lazy_static! {
+    pub static ref POOL_WRITE: Pool<ConnectionManager<PgConnection>> = Pool::builder()
+        .build(ConnectionManager::<PgConnection>::new(
+            env::var("DATABASE_URL_WRITE").expect("DATABASE_URL_WRITE must be set")
+        ))
+        .expect("Failed to create pool write.");
+    pub static ref POOL_READ: Pool<ConnectionManager<PgConnection>> = Pool::builder()
+        .build(ConnectionManager::<PgConnection>::new(
+            env::var("DATABASE_URL_READ").expect("DATABASE_URL_READ must be set")
+        ))
+        .expect("Failed to create pool read.");
 }
 
-impl ConnectionManager {
-    pub fn new() -> Self {
-        dotenv().ok();
-        let database_url_write = env::var("DATABASE_URL_WRITE").expect("DATABASE_URL_WRITE must be set");
-        let database_url_read = env::var("DATABASE_URL_READ").expect("DATABASE_URL_READ must be set");
-        
-        ConnectionManager {
-            connection_write: PgConnection::establish(&database_url_write).expect(&format!("Error connecting to {}", database_url_write)),
-            connection_read: PgConnection::establish(&database_url_read).expect(&format!("Error connecting to {}", database_url_read)),
-        }
+pub enum PoolType {
+    Read,
+    Write,
+}
+
+pub type PoolConnection = PooledConnection<ConnectionManager<PgConnection>>;
+
+pub fn get(pool_type: PoolType) -> PoolConnection {
+    match pool_type {
+        PoolType::Read => POOL_READ.get().expect("Failed to get pooled connection"),
+        PoolType::Write => POOL_WRITE.get().expect("Failed to get pooled connection"),
     }
 }
