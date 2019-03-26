@@ -1,4 +1,6 @@
+use crate::application::command::pull_request_assign_command::PullRequestAssignCommand;
 use crate::application::command::pull_request_open_command::PullRequestOpenCommand;
+use crate::application::event::pull_request_assigned_event::PullRequestAssignedEvent;
 use crate::application::event::pull_request_opened_event::PullRequestOpenedEvent;
 use crate::domain::{base::Base, href::Href, label::Label, user::User};
 use crate::infrastructure::event_bus::EVENT_BUS;
@@ -42,8 +44,8 @@ pub struct PullRequest {
     author_association: String,
     draft: bool,
     merged: bool,
-    mergeable: Option<String>,
-    rebaseable: Option<String>,
+    mergeable: Option<bool>,
+    rebaseable: Option<bool>,
     mergeable_state: String,
     merged_by: Option<String>,
     comments: u64,
@@ -55,8 +57,8 @@ pub struct PullRequest {
     changed_files: u64,
 }
 
+#[allow(deprecated)]
 impl PullRequest {
-    #[allow(deprecated)]
     pub fn open(command: PullRequestOpenCommand) -> () {
         let mut event = PullRequestOpenedEvent {
             action: command.action,
@@ -67,5 +69,17 @@ impl PullRequest {
             installation: command.installation,
         };
         post_event!(&EVENT_BUS, &mut event, PullRequestOpenedEvent);
+    }
+
+    pub fn assign(command: PullRequestAssignCommand) -> () {
+        let mut event = PullRequestAssignedEvent {
+            action: command.action,
+            number: command.number,
+            pull_request: command.pull_request,
+            assignee: command.assignee,
+            sender: command.sender,
+            installation: command.installation,
+        };
+        post_event!(&EVENT_BUS, &mut event, PullRequestAssignedEvent);
     }
 }

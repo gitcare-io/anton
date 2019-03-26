@@ -28,7 +28,8 @@ impl Event {
 
 // TODO: different events will have different meta
 #[derive(Serialize, Deserialize)]
-pub struct EventMeta {
+pub struct EventPullRequestMeta {
+    pub pull_request_id: u64,
     pub user_id: u64,
     pub repo_id: u64,
 }
