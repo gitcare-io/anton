@@ -1,12 +1,12 @@
-use eventbus::Event;
-use crate::application::command::pull_request_open_command::PullRequestOpenCommand;
+use crate::application::command::pull_request_close_command::PullRequestCloseCommand;
 use crate::domain::{
-    installation::Installation, pull_request::PullRequest, user::User, repo::Repo
+    installation::Installation, pull_request::PullRequest, repo::Repo, user::User,
 };
+use eventbus::Event;
 
 #[allow(dead_code)]
 #[derive(Serialize, Deserialize)]
-pub struct PullRequestOpenedEvent {
+pub struct PullRequestClosedEvent {
     pub action: String,
     pub number: u64,
     pub pull_request: PullRequest,
@@ -15,10 +15,10 @@ pub struct PullRequestOpenedEvent {
     pub installation: Installation,
 }
 
-impl Event for PullRequestOpenedEvent {}
+impl Event for PullRequestClosedEvent {}
 
-impl PullRequestOpenedEvent {
-    pub fn new(command: PullRequestOpenCommand) -> Self {
+impl PullRequestClosedEvent {
+    pub fn new(command: PullRequestCloseCommand) -> Self {
         Self {
             action: command.action,
             number: command.number,

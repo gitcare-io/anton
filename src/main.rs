@@ -21,7 +21,7 @@ pub mod write_schema;
 fn main() {
     dotenv::dotenv().ok();
 
-    infrastructure::event_bus::register::register_events();
+    application::event::register::register_events();
 
     rocket::ignite()
         .mount("/c/", infrastructure::api::pull_request_routes())

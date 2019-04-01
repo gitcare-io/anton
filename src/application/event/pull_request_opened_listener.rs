@@ -7,7 +7,7 @@ pub fn execute(event: &mut PullRequestOpenedEvent) -> () {
     let event_meta = EventPullRequestMeta {
         pull_request_id: event.pull_request.id,
         user_id: event.sender.id,
-        repo_id: event.pull_request.base.repo.id,
+        repo_id: event.repository.id,
     };
 
     let event = Event::new(

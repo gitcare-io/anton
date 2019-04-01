@@ -1,7 +1,9 @@
 use crate::application::command::pull_request_assign_command::PullRequestAssignCommand;
 use crate::application::command::pull_request_open_command::PullRequestOpenCommand;
+use crate::application::command::pull_request_close_command::PullRequestCloseCommand;
 use crate::application::event::pull_request_assigned_event::PullRequestAssignedEvent;
 use crate::application::event::pull_request_opened_event::PullRequestOpenedEvent;
+use crate::application::event::pull_request_closed_event::PullRequestClosedEvent;
 use crate::domain::{base::Base, href::Href, label::Label, user::User};
 use crate::infrastructure::event_bus::EVENT_BUS;
 use std::collections::HashMap;
@@ -47,7 +49,7 @@ pub struct PullRequest {
     mergeable: Option<bool>,
     rebaseable: Option<bool>,
     mergeable_state: String,
-    merged_by: Option<String>,
+    merged_by: Option<User>,
     comments: u64,
     review_comments: u64,
     maintainer_can_modify: bool,
@@ -60,26 +62,14 @@ pub struct PullRequest {
 #[allow(deprecated)]
 impl PullRequest {
     pub fn open(command: PullRequestOpenCommand) -> () {
-        let mut event = PullRequestOpenedEvent {
-            action: command.action,
-            number: command.number,
-            pull_request: command.pull_request,
-            label: command.label,
-            sender: command.sender,
-            installation: command.installation,
-        };
-        post_event!(&EVENT_BUS, &mut event, PullRequestOpenedEvent);
+        post_event!(&EVENT_BUS, &mut PullRequestOpenedEvent::new(command), PullRequestOpenedEvent);
     }
 
     pub fn assign(command: PullRequestAssignCommand) -> () {
-        let mut event = PullRequestAssignedEvent {
-            action: command.action,
-            number: command.number,
-            pull_request: command.pull_request,
-            assignee: command.assignee,
-            sender: command.sender,
-            installation: command.installation,
-        };
-        post_event!(&EVENT_BUS, &mut event, PullRequestAssignedEvent);
+        post_event!(&EVENT_BUS, &mut PullRequestAssignedEvent::new(command), PullRequestAssignedEvent);
+    }
+
+    pub fn close(command: PullRequestCloseCommand) -> () {
+        post_event!(&EVENT_BUS, &mut PullRequestClosedEvent::new(command), PullRequestClosedEvent);
     }
 }
