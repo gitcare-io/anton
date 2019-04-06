@@ -1,7 +1,7 @@
 use crate::write_schema::events;
 use serde_json;
 
-#[derive(Serialize, Deserialize, Insertable)]
+#[derive(Serialize, Deserialize, Insertable, Clone)]
 #[table_name = "events"]
 pub struct Event {
     aggregate_id: i64,

@@ -1,9 +1,10 @@
 indent_style = "Block"
 reorder_imports = true
-comment_width = 60
+comment_width = 80
 fn_single_line = true
 reorder_modules = true
 reorder_impl_items = true
 use_field_init_shorthand = true
 use_try_shorthand = true
 wrap_comments = true
+unused_imports = false

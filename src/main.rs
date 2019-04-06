@@ -1,7 +1,11 @@
-#![feature(proc_macro_hygiene, decl_macro)]
+#![feature(proc_macro_hygiene, decl_macro, custom_attribute)]
+
+#[cfg(test)]
+extern crate mocktopus;
 extern crate rocket_contrib;
 #[macro_use]
 extern crate serde_derive;
+extern crate chrono;
 #[macro_use]
 extern crate rocket;
 #[macro_use]

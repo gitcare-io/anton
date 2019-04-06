@@ -1,4 +1,9 @@
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use crate::infrastructure::models::read::event::Event;
+use crate::infrastructure::repository::event_repository::EventRepository;
+use chrono::NaiveDateTime;
+use chrono::Utc;
+#[cfg(test)]
+use mocktopus::macros::*;
 
 // DMR - Daily Merge Rate
 
@@ -7,61 +12,134 @@ pub struct DMRProjection {
     id: String,
     aggregate_id: i64,
     aggregate_type: String,
-    from: SystemTime,
-    to: SystemTime,
-    r#type: Option<String>,
-    data: Option<DMRProjectionData>,
+    from: NaiveDateTime,
+    to: NaiveDateTime,
+    data: DMRProjectionData,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, PartialEq)]
 pub struct DMRProjectionData {
-    target: f32,
-    value: f32,
-    index: f32,
+    pub target: f32,
+    pub value: f32,
+    pub index: f32,
 }
 
 pub struct DMRProjectionIdentity {
     aggregate_id: i64,
     aggregate_type: String,
-    from: SystemTime,
-    to: SystemTime,
+    from: NaiveDateTime,
+    to: NaiveDateTime,
 }
 
+#[mockable]
 impl DMRProjection {
     pub fn new(identity: DMRProjectionIdentity) -> Self {
         Self {
             id: format!(
                 "{}_{}_{}_{}",
                 identity.aggregate_id,
-                identity.from.duration_since(UNIX_EPOCH).unwrap().as_secs(),
-                identity.to.duration_since(UNIX_EPOCH).unwrap().as_secs(),
+                identity.from.timestamp(),
+                identity.to.timestamp(),
                 identity.aggregate_type,
             ),
             aggregate_id: identity.aggregate_id,
             aggregate_type: identity.aggregate_type,
             from: identity.from,
             to: identity.to,
-            r#type: None,
-            data: None,
+            data: DMRProjectionData {
+                target: 10_f32, // FIXME: it should be configurable
+                value: 0_f32,
+                index: 0_f32,
+            },
         }
     }
+
+    pub fn generate(mut self) -> Self {
+        let events = self.get_events();
+        self.data = events.iter().fold(self.data, |mut acc, i| {
+            if i.data["pull_request"]["merged"] == true {
+                acc.value += 1_f32;
+                acc.index = acc.value / acc.target;
+            }
+            acc
+        });
+        self
+    }
+
+    pub fn get_events(&self) -> Vec<Event> {
+        EventRepository::new()
+            .find_in_range(self.aggregate_id, "pull_request_closed", self.from, self.to)
+            .expect("DMR projection: cannot find events")
+    }
 }
+
+// TESTS
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mocktopus::mocking::*;
 
     #[test]
-    fn initialize_dmr_projection() {
+    fn new() {
         let dmr_projection = DMRProjection::new(DMRProjectionIdentity {
             aggregate_id: 10,
             aggregate_type: String::from("user"),
-            from: UNIX_EPOCH + Duration::from_secs(1554076800),
-            to: UNIX_EPOCH + Duration::from_secs(1556668800),
+            from: NaiveDateTime::from_timestamp(1554076800, 0),
+            to: NaiveDateTime::from_timestamp(1556668800, 0),
         });
         assert_eq!(
             String::from("10_1554076800_1556668800_user"),
             dmr_projection.id
         );
+    }
+
+    #[test]
+    fn generate() {
+        let event1 = event_factory(
+            10,
+            "{ \"pull_request\": { \"merged\": true } }",
+            "pull_request_closed",
+            "{}",
+        );
+        let event2 = event_factory(
+            10,
+            "{ \"pull_request\": { \"merged\": false } }",
+            "pull_request_closed",
+            "{}",
+        );
+        let dmr_projection = DMRProjection::new(DMRProjectionIdentity {
+            aggregate_id: 10,
+            aggregate_type: String::from("user"),
+            from: NaiveDateTime::from_timestamp(1554076800, 0),
+            to: NaiveDateTime::from_timestamp(1556668800, 0),
+        });
+        DMRProjection::get_events.mock_safe(move |_| {
+            MockResult::Return(vec![event1.clone(), event1.clone(), event2.clone()])
+        });
+        assert_eq!(
+            dmr_projection.generate().data,
+            DMRProjectionData {
+                target: 10.0,
+                value: 2.0,
+                index: 2_f32 / 10_f32
+            }
+        )
+    }
+
+    fn event_factory(
+        agg_id: i64,
+        data: &'static str,
+        event_type: &'static str,
+        meta: &'static str,
+    ) -> Event {
+        Event {
+            seq_num: 1_i64,
+            aggregate_id: agg_id,
+            data: serde_json::from_str(data).unwrap(),
+            type_: String::from(event_type),
+            meta: serde_json::from_str(meta).unwrap(),
+            log_date: Utc::now().naive_utc(),
+        }
     }
 }

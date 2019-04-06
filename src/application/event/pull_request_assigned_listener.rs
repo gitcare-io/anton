@@ -17,5 +17,5 @@ pub fn execute(event: &mut PullRequestAssignedEvent) -> () {
         json!(&event_meta),
     );
 
-    EventRepository::add(event).expect("pull_request_assigned failed");
+    EventRepository::new().add(event).expect("pull_request_assigned failed");
 }
