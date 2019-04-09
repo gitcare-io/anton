@@ -1,10 +1,10 @@
-use crate::infrastructure::models::read::event::Event;
-use crate::infrastructure::models::write::event::Event as WriteEvent;
+use crate::application::event::helpers;
+use crate::infrastructure::models::event_store::event::{Event, EventQueryable};
 use crate::infrastructure::repository::event_repository::EventRepository;
 use chrono::NaiveDateTime;
+#[cfg(test)]
 use chrono::Utc;
 use diesel::QueryResult;
-#[cfg(test)]
 
 // DMR - Daily Merge Rate
 
@@ -19,8 +19,7 @@ where
 #[derive(Serialize, Deserialize, Debug)]
 pub struct DMRProjectionBody {
     id: String,
-    aggregate_id: i64,
-    aggregate_type: String,
+    repo_id: u64,
     from: NaiveDateTime,
     to: NaiveDateTime,
     data: DMRProjectionData,
@@ -34,33 +33,40 @@ pub struct DMRProjectionData {
 }
 
 pub struct DMRProjectionIdentity {
-    aggregate_id: i64,
-    aggregate_type: String,
-    from: NaiveDateTime,
-    to: NaiveDateTime,
+    pub repo_id: u64,
 }
 
 impl<'a, ER> DMRProjection<'a, ER>
 where
     ER: EventRepository + 'a,
 {
-    pub fn new(event_repository: &'a ER, identity: DMRProjectionIdentity) -> Self {
+    pub fn new(
+        event_repository: &'a ER,
+        identity: DMRProjectionIdentity,
+        timezone: String,
+        target: f32,
+    ) -> Self {
+        let from = helpers::today_midnight(&timezone);
+        let to = helpers::tomorrow_midnight(&timezone);
+
+        if target <= 0.0 {
+            panic!("DMR projection: Target is invalid: {}", target);
+        }
+
         DMRProjection {
             _event_repo: event_repository,
             body: DMRProjectionBody {
                 id: format!(
-                    "{}_{}_{}_{}",
-                    identity.aggregate_id,
-                    identity.from.timestamp(),
-                    identity.to.timestamp(),
-                    identity.aggregate_type,
+                    "{}_{}_{}",
+                    identity.repo_id,
+                    from.timestamp(),
+                    to.timestamp(),
                 ),
-                aggregate_id: identity.aggregate_id,
-                aggregate_type: identity.aggregate_type,
-                from: identity.from,
-                to: identity.to,
+                repo_id: identity.repo_id,
+                from,
+                to,
                 data: DMRProjectionData {
-                    target: 10_f32, // FIXME: it should be configurable
+                    target,
                     value: 0_f32,
                     index: 0_f32,
                 },
@@ -80,10 +86,16 @@ where
         self
     }
 
-    fn get_events(&self) -> Vec<Event> {
+    pub fn persist(&self) -> () {
+        println!("{:?}", self.body);
+    }
+
+    // private
+
+    fn get_events(&self) -> Vec<EventQueryable> {
         self._event_repo
-            .find_in_range(
-                self.body.aggregate_id,
+            .find_by_repo_and_type(
+                self.body.repo_id,
                 "pull_request_closed",
                 self.body.from,
                 self.body.to,
@@ -101,17 +113,21 @@ mod tests {
     #[test]
     fn new() {
         let event_repo = FakeEventRepository::new();
+        let timezone = timestamp_factory();
+        let repo_id = 10_u64;
         let dmr_projection = DMRProjection::new(
             &event_repo,
-            DMRProjectionIdentity {
-                aggregate_id: 10,
-                aggregate_type: String::from("user"),
-                from: NaiveDateTime::from_timestamp(1554076800, 0),
-                to: NaiveDateTime::from_timestamp(1556668800, 0),
-            },
+            DMRProjectionIdentity { repo_id },
+            timezone.clone(),
+            10_f32,
         );
         assert_eq!(
-            String::from("10_1554076800_1556668800_user"),
+            format!(
+                "{}_{}_{}",
+                repo_id,
+                helpers::today_midnight(&timezone).timestamp(),
+                helpers::tomorrow_midnight(&timezone).timestamp()
+            ),
             dmr_projection.body.id
         );
     }
@@ -119,32 +135,48 @@ mod tests {
     #[test]
     fn generate() {
         let event_repo = FakeEventRepository::new();
+        let repo_id = 10_u64;
+        let target = 11_f32;
         let dmr_projection = DMRProjection::new(
             &event_repo,
-            DMRProjectionIdentity {
-                aggregate_id: 10,
-                aggregate_type: String::from("user"),
-                from: NaiveDateTime::from_timestamp(1554076800, 0),
-                to: NaiveDateTime::from_timestamp(1556668800, 0),
-            },
+            DMRProjectionIdentity { repo_id },
+            timestamp_factory(),
+            target,
         );
+
         assert_eq!(
             dmr_projection.generate().body.data,
             DMRProjectionData {
-                target: 10.0,
+                target: 11.0,
                 value: 2.0,
-                index: 2_f32 / 10_f32
+                index: 2_f32 / target
             }
         )
     }
+
+    #[test]
+    #[should_panic]
+    fn generate_with_invalid_target() {
+        let event_repo = FakeEventRepository::new();
+        let repo_id = 10_u64;
+        let target = 0_f32;
+        DMRProjection::new(
+            &event_repo,
+            DMRProjectionIdentity { repo_id },
+            timestamp_factory(),
+            target,
+        );
+    }
+
+    fn timestamp_factory() -> String { String::from("Europe/Warsaw") }
 
     fn event_factory(
         agg_id: i64,
         data: &'static str,
         event_type: &'static str,
         meta: &'static str,
-    ) -> Event {
-        Event {
+    ) -> EventQueryable {
+        EventQueryable {
             seq_num: 1_i64,
             aggregate_id: agg_id,
             data: serde_json::from_str(data).unwrap(),
@@ -159,15 +191,15 @@ mod tests {
     impl EventRepository for FakeEventRepository {
         fn new() -> Self { FakeEventRepository {} }
 
-        fn add(&self, _event: WriteEvent) -> QueryResult<usize> { Ok(1_usize) }
+        fn add(&self, _event: Event) -> QueryResult<usize> { Ok(1_usize) }
 
-        fn find_in_range(
+        fn find_by_repo_and_type(
             &self,
-            _agg_id: i64,
+            _repo_id: u64,
             _event_type: &'static str,
             _from: NaiveDateTime,
             _to: NaiveDateTime,
-        ) -> QueryResult<Vec<Event>> {
+        ) -> QueryResult<Vec<EventQueryable>> {
             let event1 = event_factory(
                 10,
                 "{ \"pull_request\": { \"merged\": true } }",

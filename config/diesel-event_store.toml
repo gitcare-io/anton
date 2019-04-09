@@ -1,0 +1,2 @@
+[print_schema]
+file = "src/infrastructure/schema/event_store_schema.rs"

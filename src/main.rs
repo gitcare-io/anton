@@ -1,11 +1,8 @@
 #![feature(proc_macro_hygiene, decl_macro, custom_attribute)]
 
-#[cfg(test)]
-extern crate mocktopus;
 extern crate rocket_contrib;
 #[macro_use]
 extern crate serde_derive;
-extern crate chrono;
 #[macro_use]
 extern crate rocket;
 #[macro_use]
@@ -15,12 +12,12 @@ extern crate dotenv;
 extern crate eventbus;
 #[macro_use]
 extern crate lazy_static;
+extern crate chrono;
+extern crate chrono_tz;
 
 pub mod application;
 pub mod domain;
 pub mod infrastructure;
-pub mod read_schema;
-pub mod write_schema;
 
 fn main() {
     dotenv::dotenv().ok();

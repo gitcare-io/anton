@@ -1,2 +1,2 @@
-pub mod write;
+pub mod event_store;
 pub mod read;

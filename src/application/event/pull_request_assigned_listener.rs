@@ -1,5 +1,5 @@
 use crate::application::event::pull_request_assigned_event::PullRequestAssignedEvent;
-use crate::infrastructure::models::write::event::{Event, EventPullRequestMeta};
+use crate::infrastructure::models::event_store::event::{Event, EventPullRequestMeta};
 use crate::infrastructure::repository::event_repository::EventRepository;
 use crate::infrastructure::repository::repository::Repository;
 use serde_json::json;
@@ -17,5 +17,7 @@ pub fn execute(event: &mut PullRequestAssignedEvent) -> () {
         json!(&event_meta),
     );
     let event_repo: Repository = EventRepository::new();
-    event_repo.add(event).expect("pull_request_assigned failed");
+    event_repo
+        .add(event)
+        .expect("pull_request_assigned event: failed - cannot add to event_store");
 }

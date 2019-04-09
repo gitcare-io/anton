@@ -8,7 +8,7 @@ if [ $dbtype = "read" ]
 then
   connection=$DATABASE_URL_READ
 else
-  connection=$DATABASE_URL_WRITE
+  connection=$DATABASE_URL_EVENT_STORE
 fi
 
 psql "$connection"

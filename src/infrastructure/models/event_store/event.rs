@@ -1,5 +1,17 @@
-use crate::write_schema::events;
+use chrono::NaiveDateTime;
+use crate::infrastructure::schema::event_store_schema::events;
 use serde_json;
+
+#[derive(Serialize, Deserialize, Queryable, Debug, Clone)]
+pub struct EventQueryable {
+    pub seq_num: i64,
+    pub aggregate_id: i64,
+    pub data: serde_json::Value,
+    pub type_: String,
+    pub meta: serde_json::Value,
+    pub log_date: NaiveDateTime,
+}
+
 
 #[derive(Serialize, Deserialize, Insertable, Clone)]
 #[table_name = "events"]
@@ -26,7 +38,6 @@ impl Event {
     }
 }
 
-// TODO: different events will have different meta
 #[derive(Serialize, Deserialize)]
 pub struct EventPullRequestMeta {
     pub pull_request_id: u64,
