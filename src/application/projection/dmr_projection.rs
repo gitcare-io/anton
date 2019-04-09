@@ -12,7 +12,7 @@ pub struct DMRProjection<'a, ER>
 where
     ER: EventRepository + 'a,
 {
-    _event_repo: &'a ER,
+    event_repository: &'a ER,
     body: DMRProjectionBody,
 }
 
@@ -54,7 +54,7 @@ where
         }
 
         DMRProjection {
-            _event_repo: event_repository,
+            event_repository,
             body: DMRProjectionBody {
                 id: format!(
                     "{}_{}_{}",
@@ -93,7 +93,7 @@ where
     // private
 
     fn get_events(&self) -> Vec<EventQueryable> {
-        self._event_repo
+        self.event_repository
             .find_by_repo_and_type(
                 self.body.repo_id,
                 "pull_request_closed",
@@ -112,11 +112,11 @@ mod tests {
 
     #[test]
     fn new() {
-        let event_repo = FakeEventRepository::new();
+        let event_repository = FakeEventRepository::new();
         let timezone = timestamp_factory();
         let repo_id = 10_u64;
         let dmr_projection = DMRProjection::new(
-            &event_repo,
+            &event_repository,
             DMRProjectionIdentity { repo_id },
             timezone.clone(),
             10_f32,
@@ -134,11 +134,11 @@ mod tests {
 
     #[test]
     fn generate() {
-        let event_repo = FakeEventRepository::new();
+        let event_repository = FakeEventRepository::new();
         let repo_id = 10_u64;
         let target = 11_f32;
         let dmr_projection = DMRProjection::new(
-            &event_repo,
+            &event_repository,
             DMRProjectionIdentity { repo_id },
             timestamp_factory(),
             target,
@@ -157,11 +157,11 @@ mod tests {
     #[test]
     #[should_panic]
     fn generate_with_invalid_target() {
-        let event_repo = FakeEventRepository::new();
+        let event_repository = FakeEventRepository::new();
         let repo_id = 10_u64;
         let target = 0_f32;
         DMRProjection::new(
-            &event_repo,
+            &event_repository,
             DMRProjectionIdentity { repo_id },
             timestamp_factory(),
             target,
