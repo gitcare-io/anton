@@ -1,10 +1,9 @@
 table! {
     dmrprojections (id) {
         id -> Varchar,
-        aggregate_id -> Int8,
-        aggregate_type -> Varchar,
-        from -> Nullable<Timestamp>,
-        to -> Nullable<Timestamp>,
+        repo_id -> Int8,
+        from -> Timestamp,
+        to -> Timestamp,
         data -> Jsonb,
         projected_at -> Timestamp,
     }

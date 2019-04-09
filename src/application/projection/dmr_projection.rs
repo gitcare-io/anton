@@ -1,18 +1,23 @@
 use crate::application::event::helpers;
-use crate::infrastructure::models::event_store::event::{Event, EventQueryable};
+use crate::infrastructure::models::event_store::event::EventQueryable;
+use crate::infrastructure::models::read::dmr_projection::DMRProjectionInsertable;
+use crate::infrastructure::repository::dmr_projection_repository::DMRProjectionRepository;
 use crate::infrastructure::repository::event_repository::EventRepository;
 use chrono::NaiveDateTime;
-#[cfg(test)]
-use chrono::Utc;
-use diesel::QueryResult;
+#[cfg(test)] use crate::infrastructure::models::event_store::event::EventInsertable;
+#[cfg(test)] use chrono::Utc;
+#[cfg(test)] use diesel::QueryResult;
+use serde_json::json;
 
 // DMR - Daily Merge Rate
 
-pub struct DMRProjection<'a, ER>
+pub struct DMRProjection<'a, 'b, ER, DMRR>
 where
     ER: EventRepository + 'a,
+    DMRR: DMRProjectionRepository + 'b,
 {
     event_repository: &'a ER,
+    dmr_projection_repository: &'b DMRR,
     event_type: &'static str,
     body: DMRProjectionBody,
 }
@@ -37,12 +42,14 @@ pub struct DMRProjectionIdentity {
     pub repo_id: u64,
 }
 
-impl<'a, ER> DMRProjection<'a, ER>
+impl<'a, 'b, ER, DMRR> DMRProjection<'a, 'b, ER, DMRR>
 where
     ER: EventRepository + 'a,
+    DMRR: DMRProjectionRepository + 'b,
 {
     pub fn new(
         event_repository: &'a ER,
+        dmr_projection_repository: &'b DMRR,
         identity: DMRProjectionIdentity,
         timezone: String,
         target: f32,
@@ -56,6 +63,7 @@ where
 
         DMRProjection {
             event_repository,
+            dmr_projection_repository,
             event_type: "pull_request_closed",
             body: DMRProjectionBody {
                 id: format!(
@@ -88,11 +96,16 @@ where
         self
     }
 
-    // TODO: It should insert or replace the record
-    // https://github.com/diesel-rs/diesel/issues/196
-    // https://docs.diesel.rs/diesel/query_builder/struct.InsertStatement.html#method.on_conflict
-    pub fn persist(&self) -> () {
-        println!("{:?}", self.body);
+    pub fn persist(&self) -> usize {
+        self.dmr_projection_repository
+            .persist_dmr(DMRProjectionInsertable::new(
+                self.body.id.clone(),
+                self.body.repo_id as i64,
+                self.body.from,
+                self.body.to,
+                json!(self.body.data),
+            ))
+            .unwrap()
     }
 
     // private
@@ -118,10 +131,12 @@ mod tests {
     #[test]
     fn new() {
         let event_repository = FakeEventRepository::new();
+        let dmr_projection_repository = FakeDMRProjectionRepository::new();
         let timezone = timestamp_factory();
         let repo_id = 10_u64;
         let dmr_projection = DMRProjection::new(
             &event_repository,
+            &dmr_projection_repository,
             DMRProjectionIdentity { repo_id },
             timezone.clone(),
             10_f32,
@@ -140,10 +155,12 @@ mod tests {
     #[test]
     fn generate() {
         let event_repository = FakeEventRepository::new();
+        let dmr_projection_repository = FakeDMRProjectionRepository::new();
         let repo_id = 10_u64;
         let target = 11_f32;
         let dmr_projection = DMRProjection::new(
             &event_repository,
+            &dmr_projection_repository,
             DMRProjectionIdentity { repo_id },
             timestamp_factory(),
             target,
@@ -163,10 +180,12 @@ mod tests {
     #[should_panic]
     fn generate_with_invalid_target() {
         let event_repository = FakeEventRepository::new();
+        let dmr_projection_repository = FakeDMRProjectionRepository::new();
         let repo_id = 10_u64;
         let target = 0_f32;
         DMRProjection::new(
             &event_repository,
+            &dmr_projection_repository,
             DMRProjectionIdentity { repo_id },
             timestamp_factory(),
             target,
@@ -192,11 +211,12 @@ mod tests {
     }
 
     struct FakeEventRepository;
+    struct FakeDMRProjectionRepository;
 
     impl EventRepository for FakeEventRepository {
         fn new() -> Self { FakeEventRepository {} }
 
-        fn add(&self, _event: Event) -> QueryResult<usize> { Ok(1_usize) }
+        fn persist_event(&self, _event: EventInsertable) -> QueryResult<usize> { Ok(1_usize) }
 
         fn find_by_repo_and_type(
             &self,
@@ -218,6 +238,14 @@ mod tests {
                 "{}",
             );
             Ok(vec![event1.clone(), event1.clone(), event2.clone()])
+        }
+    }
+
+    impl DMRProjectionRepository for FakeDMRProjectionRepository {
+        fn new() -> Self { FakeDMRProjectionRepository {} }
+
+        fn persist_dmr(&self, _dmr_projection: DMRProjectionInsertable) -> QueryResult<usize> {
+            Ok(1_usize)
         }
     }
 }

@@ -15,16 +15,21 @@ impl CommonRepository for Repository {
     }
 }
 
-pub trait WriteRepository {
-    fn get_connection() -> PoolConnection { get(PoolType::Write) }
+pub trait EventStoreRepository {
+    fn get_connection() -> PoolConnection { get(PoolType::EventStore) }
 }
 
 pub trait ReadRepository {
     fn get_connection() -> PoolConnection { get(PoolType::Read) }
 }
 
-pub fn __construct() -> Repository {
-    Repository {
-        conn: connection_manager::get(connection_manager::PoolType::Write)
+pub fn __construct(pool_type: &'static str) -> Repository {
+    match pool_type {
+        "event_store" => Repository {
+            conn: connection_manager::get(connection_manager::PoolType::EventStore)
+        },
+        _ => Repository {
+            conn: connection_manager::get(connection_manager::PoolType::Read)
+        },
     }
 }

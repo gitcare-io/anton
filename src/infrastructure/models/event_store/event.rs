@@ -1,8 +1,8 @@
-use chrono::NaiveDateTime;
 use crate::infrastructure::schema::event_store_schema::events;
+use chrono::NaiveDateTime;
 use serde_json;
 
-#[derive(Serialize, Deserialize, Queryable, Debug, Clone)]
+#[derive(Serialize, Deserialize, Queryable, Clone)]
 pub struct EventQueryable {
     pub seq_num: i64,
     pub aggregate_id: i64,
@@ -12,17 +12,16 @@ pub struct EventQueryable {
     pub log_date: NaiveDateTime,
 }
 
-
 #[derive(Serialize, Deserialize, Insertable, Clone)]
 #[table_name = "events"]
-pub struct Event {
-    aggregate_id: i64,
-    data: serde_json::Value,
-    type_: String,
-    meta: serde_json::Value,
+pub struct EventInsertable {
+    pub aggregate_id: i64,
+    pub data: serde_json::Value,
+    pub type_: String,
+    pub meta: serde_json::Value,
 }
 
-impl Event {
+impl EventInsertable {
     pub fn new(
         aggregate_id: i64,
         data: serde_json::Value,
