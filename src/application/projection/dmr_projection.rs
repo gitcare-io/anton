@@ -88,6 +88,9 @@ where
         self
     }
 
+    // TODO: It should insert or replace the record
+    // https://github.com/diesel-rs/diesel/issues/196
+    // https://docs.diesel.rs/diesel/query_builder/struct.InsertStatement.html#method.on_conflict
     pub fn persist(&self) -> () {
         println!("{:?}", self.body);
     }

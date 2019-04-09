@@ -23,13 +23,23 @@ pub fn execute(event: &mut PullRequestClosedEvent) -> () {
         .add(event_to_persist)
         .expect("pull_request_closed event: failed - cannot add to event_store");
 
+    // TODO: let's move this projection generation to the external projector service
+    // It should works something similar to:
+    // Projector::new("pull_request_closed").project() And in the Projector
+    // ...
+    // fn project() -> () {
+    //     DMRProjection::new(...)
+    //         .generate()
+    //         .persist()
+    // }
+    // ...
     DMRProjection::new(
         &event_repo,
         DMRProjectionIdentity {
             repo_id: event.repository.id,
         },
-        String::from("Europe/Warsaw"), // FIXME: it should be configurable for each repo.
-        10_f32,                        // FIXME: it should be configurable for each repo.
+        String::from("Europe/Warsaw"), // TODO: it should be configurable for each repo.
+        10_f32,                        // TODO: it should be configurable for each repo.
     )
     .generate()
     .persist();
