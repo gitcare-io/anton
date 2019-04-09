@@ -13,6 +13,7 @@ where
     ER: EventRepository + 'a,
 {
     event_repository: &'a ER,
+    event_type: &'static str,
     body: DMRProjectionBody,
 }
 
@@ -55,6 +56,7 @@ where
 
         DMRProjection {
             event_repository,
+            event_type: "pull_request_closed",
             body: DMRProjectionBody {
                 id: format!(
                     "{}_{}_{}",
@@ -96,7 +98,7 @@ where
         self.event_repository
             .find_by_repo_and_type(
                 self.body.repo_id,
-                "pull_request_closed",
+                self.event_type,
                 self.body.from,
                 self.body.to,
             )
