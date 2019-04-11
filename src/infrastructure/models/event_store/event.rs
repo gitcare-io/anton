@@ -2,7 +2,7 @@ use crate::infrastructure::schema::event_store_schema::events;
 use chrono::NaiveDateTime;
 use serde_json;
 
-#[derive(Serialize, Deserialize, Queryable, Clone)]
+#[derive(Serialize, Deserialize, Queryable, Debug, Clone)]
 pub struct EventQueryable {
     pub seq_num: i64,
     pub aggregate_id: i64,

@@ -17,7 +17,7 @@ use diesel::{QueryDsl, QueryResult, RunQueryDsl};
 
 pub trait EventRepository {
     fn new() -> Self;
-    fn persist_event(&self, event: EventInsertable) -> QueryResult<usize>;
+    fn persist_event(&self, event: EventInsertable) -> QueryResult<(i64)>;
     fn find_by_repo_and_type(
         &self,
         repo_id: u64,
@@ -25,15 +25,21 @@ pub trait EventRepository {
         from: NaiveDateTime,
         to: NaiveDateTime,
     ) -> QueryResult<Vec<EventQueryable>>;
+    fn find_by_seq_num(&self, seq_num: i64) -> QueryResult<EventQueryable>;
 }
 
 impl EventRepository for Repository {
     fn new() -> Self { __construct("event_store") }
 
-    fn persist_event(&self, event: EventInsertable) -> QueryResult<usize> {
+    fn persist_event(&self, event: EventInsertable) -> QueryResult<(i64)> {
         diesel::insert_into(events)
             .values(&event)
-            .execute(self.conn())
+            .returning(seq_num)
+            .get_result::<(i64)>(self.conn())
+    }
+
+    fn find_by_seq_num(&self, seq_n: i64) -> QueryResult<EventQueryable> {
+        events.find(seq_n).first(self.conn())
     }
 
     fn find_by_repo_and_type(
@@ -93,6 +99,25 @@ mod tests {
                 event_repository.find_by_repo_and_type(10_u64, "repo", example_from, example_to)?;
             assert_eq!(result.first().unwrap().meta["repo_id"], 10_u64);
             assert_eq!(result.len(), 2);
+            Ok(())
+        });
+    }
+
+    #[test]
+    fn find_by_seq_num_test() {
+        dotenv::dotenv().ok();
+        let event_repository: Repository = EventRepository::new();
+        event_repository.conn().test_transaction::<_, Error, _>(|| {
+            let event = EventInsertable::new(
+                2_i64,
+                serde_json::from_str("{}").unwrap(),
+                String::from("repo"),
+                serde_json::from_str("{}").unwrap(),
+            );
+            let seq_n = event_repository.persist_event(event.clone())?;
+            let found_event = event_repository.find_by_seq_num(seq_n)?;
+            assert_eq!(found_event.seq_num, seq_n);
+            assert_eq!(found_event.aggregate_id, 2_i64);
             Ok(())
         });
     }

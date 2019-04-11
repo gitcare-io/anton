@@ -1,12 +1,16 @@
-use crate::application::event::helpers;
+#[cfg(test)]
+use crate::application::projection::helpers;
+#[cfg(test)]
+use crate::infrastructure::models::event_store::event::EventInsertable;
 use crate::infrastructure::models::event_store::event::EventQueryable;
 use crate::infrastructure::models::read::dmr_projection::DMRProjectionInsertable;
 use crate::infrastructure::repository::dmr_projection_repository::DMRProjectionRepository;
 use crate::infrastructure::repository::event_repository::EventRepository;
 use chrono::NaiveDateTime;
-#[cfg(test)] use crate::infrastructure::models::event_store::event::EventInsertable;
-#[cfg(test)] use chrono::Utc;
-#[cfg(test)] use diesel::QueryResult;
+#[cfg(test)]
+use chrono::Utc;
+#[cfg(test)]
+use diesel::QueryResult;
 use serde_json::json;
 
 // DMR - Daily Merge Rate
@@ -51,12 +55,10 @@ where
         event_repository: &'a ER,
         dmr_projection_repository: &'b DMRR,
         identity: DMRProjectionIdentity,
-        timezone: String,
         target: f32,
+        from: NaiveDateTime,
+        to: NaiveDateTime,
     ) -> Self {
-        let from = helpers::today_midnight(&timezone);
-        let to = helpers::tomorrow_midnight(&timezone);
-
         if target <= 0.0 {
             panic!("DMR projection: Target is invalid: {}", target);
         }
@@ -132,14 +134,15 @@ mod tests {
     fn new() {
         let event_repository = FakeEventRepository::new();
         let dmr_projection_repository = FakeDMRProjectionRepository::new();
-        let timezone = timestamp_factory();
+        let timezone = timezone_factory();
         let repo_id = 10_u64;
         let dmr_projection = DMRProjection::new(
             &event_repository,
             &dmr_projection_repository,
             DMRProjectionIdentity { repo_id },
-            timezone.clone(),
             10_f32,
+            helpers::today_midnight(&timezone),
+            helpers::tomorrow_midnight(&timezone),
         );
         assert_eq!(
             format!(
@@ -158,12 +161,14 @@ mod tests {
         let dmr_projection_repository = FakeDMRProjectionRepository::new();
         let repo_id = 10_u64;
         let target = 11_f32;
+        let timezone = timezone_factory();
         let dmr_projection = DMRProjection::new(
             &event_repository,
             &dmr_projection_repository,
             DMRProjectionIdentity { repo_id },
-            timestamp_factory(),
             target,
+            helpers::today_midnight(&timezone),
+            helpers::tomorrow_midnight(&timezone),
         );
 
         assert_eq!(
@@ -183,16 +188,18 @@ mod tests {
         let dmr_projection_repository = FakeDMRProjectionRepository::new();
         let repo_id = 10_u64;
         let target = 0_f32;
+        let timezone = timezone_factory();
         DMRProjection::new(
             &event_repository,
             &dmr_projection_repository,
             DMRProjectionIdentity { repo_id },
-            timestamp_factory(),
             target,
+            helpers::today_midnight(&timezone),
+            helpers::tomorrow_midnight(&timezone),
         );
     }
 
-    fn timestamp_factory() -> String { String::from("Europe/Warsaw") }
+    fn timezone_factory() -> String { String::from("Europe/Warsaw") }
 
     fn event_factory(
         agg_id: i64,
@@ -216,7 +223,16 @@ mod tests {
     impl EventRepository for FakeEventRepository {
         fn new() -> Self { FakeEventRepository {} }
 
-        fn persist_event(&self, _event: EventInsertable) -> QueryResult<usize> { Ok(1_usize) }
+        fn persist_event(&self, _event: EventInsertable) -> QueryResult<(i64)> { Ok(1_i64) }
+
+        fn find_by_seq_num(&self, _seq_n: i64) -> QueryResult<EventQueryable> {
+            Ok(event_factory(
+                10,
+                "{ \"pull_request\": { \"merged\": true } }",
+                "pull_request_closed",
+                "{}",
+            ))
+        }
 
         fn find_by_repo_and_type(
             &self,
