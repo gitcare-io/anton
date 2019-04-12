@@ -21,7 +21,7 @@ pub trait EventRepository {
     fn find_by_repo_and_type(
         &self,
         repo_id: u64,
-        event_type: &'static str,
+        eventtype: &'static str,
         from: NaiveDateTime,
         to: NaiveDateTime,
     ) -> QueryResult<Vec<EventQueryable>>;
@@ -45,12 +45,12 @@ impl EventRepository for Repository {
     fn find_by_repo_and_type(
         &self,
         repo_id: u64,
-        event_type: &'static str,
+        eventtype: &'static str,
         from: NaiveDateTime,
         to: NaiveDateTime,
     ) -> QueryResult<Vec<EventQueryable>> {
         let query = events
-            .filter(type_.eq(event_type))
+            .filter(event_type.eq(eventtype))
             .filter(log_date.gt(from))
             .filter(log_date.lt(to))
             .filter(sql(&format!("meta->>'repo_id' = '{}'", repo_id)[..]));

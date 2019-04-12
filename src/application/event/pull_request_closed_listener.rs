@@ -26,6 +26,8 @@ pub fn execute(event: &mut PullRequestClosedEvent) -> () {
             json!(&event_meta),
         ))
         .expect(&format!("{}: failed - cannot add to event_store", event_name)[..]);
+    
+    println!("seq_num of event - {}", seq_num);
 
     DMRProjector::new(&event_repository, &dmr_projection_repository)
         .project(seq_num)

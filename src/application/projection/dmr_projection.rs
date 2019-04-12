@@ -1,3 +1,4 @@
+use crate::application::event::Event;
 #[cfg(test)]
 use crate::application::projection::helpers;
 #[cfg(test)]
@@ -66,7 +67,7 @@ where
         DMRProjection {
             event_repository,
             dmr_projection_repository,
-            event_type: "pull_request_closed",
+            event_type: Event::PullRequestClosed.value(),
             body: DMRProjectionBody {
                 id: format!(
                     "{}_{}_{}",
@@ -88,6 +89,7 @@ where
 
     pub fn generate(mut self) -> Self {
         let events = self.get_events();
+        println!("DMR projection events - {:?}", events);
         self.body.data = events.iter().fold(self.body.data, |mut acc, i| {
             if i.data["pull_request"]["merged"] == true {
                 acc.value += 1_f32;
@@ -211,7 +213,7 @@ mod tests {
             seq_num: 1_i64,
             aggregate_id: agg_id,
             data: serde_json::from_str(data).unwrap(),
-            type_: String::from(event_type),
+            event_type: String::from(event_type),
             meta: serde_json::from_str(meta).unwrap(),
             log_date: Utc::now().naive_utc(),
         }
@@ -229,7 +231,7 @@ mod tests {
             Ok(event_factory(
                 10,
                 "{ \"pull_request\": { \"merged\": true } }",
-                "pull_request_closed",
+                Event::PullRequestClosed.value(),
                 "{}",
             ))
         }
@@ -244,13 +246,13 @@ mod tests {
             let event1 = event_factory(
                 10,
                 "{ \"pull_request\": { \"merged\": true } }",
-                "pull_request_closed",
+                Event::PullRequestClosed.value(),
                 "{}",
             );
             let event2 = event_factory(
                 10,
                 "{ \"pull_request\": { \"merged\": false } }",
-                "pull_request_closed",
+                Event::PullRequestClosed.value(),
                 "{}",
             );
             Ok(vec![event1.clone(), event1.clone(), event2.clone()])

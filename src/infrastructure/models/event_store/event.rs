@@ -7,7 +7,7 @@ pub struct EventQueryable {
     pub seq_num: i64,
     pub aggregate_id: i64,
     pub data: serde_json::Value,
-    pub type_: String,
+    pub event_type: String,
     pub meta: serde_json::Value,
     pub log_date: NaiveDateTime,
 }
@@ -17,7 +17,7 @@ pub struct EventQueryable {
 pub struct EventInsertable {
     pub aggregate_id: i64,
     pub data: serde_json::Value,
-    pub type_: String,
+    pub event_type: String,
     pub meta: serde_json::Value,
 }
 
@@ -31,7 +31,7 @@ impl EventInsertable {
         Self {
             aggregate_id,
             data,
-            type_: event_type,
+            event_type,
             meta,
         }
     }

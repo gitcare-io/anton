@@ -14,11 +14,11 @@ pub enum Event {
 }
 
 impl Event {
-    fn value(&self) -> &'static str {
+    pub fn value(&self) -> &'static str {
         match *self {
-            Event::PullRequestOpened => "pull_requst_opened",
-            Event::PullRequestAssigned => "pull_requst_assigned",
-            Event::PullRequestClosed => "pull_requst_closed",
+            Event::PullRequestOpened => "pull_request_opened",
+            Event::PullRequestAssigned => "pull_request_assigned",
+            Event::PullRequestClosed => "pull_request_closed",
         }
     }
 }
