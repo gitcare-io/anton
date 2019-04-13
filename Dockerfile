@@ -4,7 +4,7 @@ RUN cargo install cargo-build-deps
 RUN cd /tmp && USER=root cargo new --bin anton
 
 WORKDIR /tmp/anton
-COPY Cargo.toml Cargo.lock ./
+COPY ./Cargo.toml ./Cargo.lock ./
 
 RUN cargo build-deps --release
 
