@@ -14,6 +14,7 @@ extern crate eventbus;
 extern crate lazy_static;
 extern crate chrono;
 extern crate chrono_tz;
+use std::env;
 
 pub mod application;
 pub mod domain;
@@ -28,4 +29,17 @@ fn main() {
         .launch();
 }
 
-pub fn load_config() -> () { dotenv::from_path("config/.env-development").ok(); }
+pub fn load_config() -> () {
+    let env = env::var("ENV");
+    match env {
+        Ok(env) => match &env[..] {
+            "staging" => dotenv::from_path("config/.env-staging").ok(),
+            "production" => dotenv::from_path("config/.env-production").ok(),
+            _ => dotenv::from_path("config/.env-development").ok(),
+        },
+        _ => dotenv::from_path("config/.env-development").ok(),
+    };
+    for (key, value) in env::vars() {
+        println!("{}: {}", key, value);
+    }
+}
