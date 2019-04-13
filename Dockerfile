@@ -1,10 +1,15 @@
 FROM rustlang/rust:nightly
 
-WORKDIR /usr/src/anton
-COPY . .
+RUN cargo install cargo-build-deps
+RUN cd /tmp && USER=root cargo new --bin anton
 
-RUN cargo install --path .
-RUN cargo build --release
+WORKDIR /tmp/anton
+COPY Cargo.toml Cargo.lock ./
+
+RUN cargo build-deps --release
+
+COPY src /tmp/anton/src
+RUN cargo build  --release
 
 RUN if [ "$PORT" ]; then export ROCKET_PORT=$PORT; fi
 
