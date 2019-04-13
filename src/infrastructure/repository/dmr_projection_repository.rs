@@ -30,13 +30,13 @@ impl DMRProjectionRepository for Repository {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::config;
     use crate::infrastructure::models::read::dmr_projection::DMRProjectionQueryable;
-    use crate::load_config;
     use diesel::result::Error;
 
     #[test]
     fn persist_dmr_projection() {
-        load_config();
+        config::load();
         let dmr_projection_repository: Repository = DMRProjectionRepository::new();
         dmr_projection_repository
             .conn()

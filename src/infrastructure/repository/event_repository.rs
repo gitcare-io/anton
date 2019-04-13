@@ -58,13 +58,13 @@ impl EventRepository for Repository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::load_config;
+    use crate::config;
     use chrono::{Duration, Utc};
     use diesel::result::Error;
 
     #[test]
     fn add_event() {
-        load_config();
+        config::load();
         let event_repository: Repository = EventRepository::new();
         event_repository.conn().test_transaction::<_, Error, _>(|| {
             let json: serde_json::Value = serde_json::from_str("{}").unwrap();
@@ -79,7 +79,7 @@ mod tests {
 
     #[test]
     fn find_by_repo_and_type() {
-        load_config();
+        config::load();
         let event_repository: Repository = EventRepository::new();
         event_repository.conn().test_transaction::<_, Error, _>(|| {
             let json: serde_json::Value = serde_json::from_str("{}").unwrap();
@@ -103,7 +103,7 @@ mod tests {
 
     #[test]
     fn find_by_seq_num_test() {
-        load_config();
+        config::load();
         let event_repository: Repository = EventRepository::new();
         event_repository.conn().test_transaction::<_, Error, _>(|| {
             let event = EventInsertable::new(
