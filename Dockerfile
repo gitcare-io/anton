@@ -1,9 +1,12 @@
 FROM rustlang/rust:nightly
 
+RUN adduser user
+USER user
+
 RUN cargo install cargo-build-deps
 
 WORKDIR /tmp
-RUN USER=root cargo new --bin anton
+RUN USER=user cargo new --bin anton
 
 WORKDIR /tmp/anton
 COPY ./Cargo.toml ./Cargo.lock ./
