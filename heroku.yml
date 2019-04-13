@@ -1,0 +1,8 @@
+setup:
+  config:
+    ENV: staging
+build:
+  docker:
+    web: Dockerfile
+run:
+  web: ./target/release/anton
