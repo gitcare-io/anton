@@ -1,13 +1,9 @@
-#[cfg(test)]
-use crate::infrastructure::models::read::dmr_projection::DMRProjectionQueryable;
 use crate::infrastructure::schema::read_schema::dmrprojections::dsl::*;
 use crate::infrastructure::{
     models::read::dmr_projection::DMRProjectionInsertable,
     repository::repository::{CommonRepository, Repository, __construct},
 };
 use chrono::Utc;
-#[cfg(test)]
-use diesel::result::Error;
 #[allow(unused_imports)]
 use diesel::Connection;
 use diesel::ExpressionMethods;
@@ -34,11 +30,13 @@ impl DMRProjectionRepository for Repository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dotenv;
+    use crate::infrastructure::models::read::dmr_projection::DMRProjectionQueryable;
+    use crate::load_config;
+    use diesel::result::Error;
 
     #[test]
     fn persist_dmr_projection() {
-        dotenv::dotenv().ok();
+        load_config();
         let dmr_projection_repository: Repository = DMRProjectionRepository::new();
         dmr_projection_repository
             .conn()

@@ -1,17 +1,9 @@
 use crate::application::event::Event;
-#[cfg(test)]
-use crate::application::projection::helpers;
-#[cfg(test)]
-use crate::infrastructure::models::event_store::event::EventInsertable;
 use crate::infrastructure::models::event_store::event::EventQueryable;
 use crate::infrastructure::models::read::dmr_projection::DMRProjectionInsertable;
 use crate::infrastructure::repository::dmr_projection_repository::DMRProjectionRepository;
 use crate::infrastructure::repository::event_repository::EventRepository;
 use chrono::NaiveDateTime;
-#[cfg(test)]
-use chrono::Utc;
-#[cfg(test)]
-use diesel::QueryResult;
 use serde_json::json;
 
 // DMR - Daily Merge Rate
@@ -131,6 +123,10 @@ where
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::application::projection::helpers;
+    use crate::infrastructure::models::event_store::event::EventInsertable;
+    use chrono::Utc;
+    use diesel::QueryResult;
 
     #[test]
     fn new() {

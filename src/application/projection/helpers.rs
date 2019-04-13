@@ -1,5 +1,3 @@
-#[cfg(test)]
-use chrono::NaiveDate;
 use chrono::{Duration, NaiveDateTime, TimeZone, Timelike, Utc};
 use chrono_tz::Tz;
 
@@ -41,6 +39,7 @@ pub fn date_midnight(date: &NaiveDateTime, timezone: &String) -> NaiveDateTime {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use chrono::NaiveDate;
 
     #[test]
     fn today_midnight_test() {

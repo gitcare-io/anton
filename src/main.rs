@@ -20,11 +20,12 @@ pub mod domain;
 pub mod infrastructure;
 
 fn main() {
-    dotenv::dotenv().ok();
-
+    load_config();
     application::event::register::register_events();
 
     rocket::ignite()
         .mount("/c/", infrastructure::api::pull_request_routes())
         .launch();
 }
+
+pub fn load_config() -> () { dotenv::from_path("config/.env-development").ok(); }

@@ -14,7 +14,7 @@ services:
 
   anton_postgres_event_store:
     container_name: anton_postgres_event_store
-    image: postgres:11.2
+    image: postgres:latest
     ports:
       - "5432:5432"
     environment:
@@ -24,7 +24,7 @@ services:
 
   anton_postgres_read:
     container_name: anton_postgres_read
-    image: postgres:11.2
+    image: postgres:latest
     ports:
       - "5433:5432"
     environment:

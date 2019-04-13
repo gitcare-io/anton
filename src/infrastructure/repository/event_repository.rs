@@ -5,11 +5,7 @@ use crate::infrastructure::{
     repository::repository::{CommonRepository, Repository, __construct},
 };
 use chrono::NaiveDateTime;
-#[cfg(test)]
-use chrono::{Duration, Utc};
 use diesel::dsl::sql;
-#[cfg(test)]
-use diesel::result::Error;
 #[allow(unused_imports)]
 use diesel::Connection;
 use diesel::ExpressionMethods;
@@ -62,11 +58,13 @@ impl EventRepository for Repository {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use dotenv;
+    use crate::load_config;
+    use chrono::{Duration, Utc};
+    use diesel::result::Error;
 
     #[test]
     fn add_event() {
-        dotenv::dotenv().ok();
+        load_config();
         let event_repository: Repository = EventRepository::new();
         event_repository.conn().test_transaction::<_, Error, _>(|| {
             let json: serde_json::Value = serde_json::from_str("{}").unwrap();
@@ -81,7 +79,7 @@ mod tests {
 
     #[test]
     fn find_by_repo_and_type() {
-        dotenv::dotenv().ok();
+        load_config();
         let event_repository: Repository = EventRepository::new();
         event_repository.conn().test_transaction::<_, Error, _>(|| {
             let json: serde_json::Value = serde_json::from_str("{}").unwrap();
@@ -105,7 +103,7 @@ mod tests {
 
     #[test]
     fn find_by_seq_num_test() {
-        dotenv::dotenv().ok();
+        load_config();
         let event_repository: Repository = EventRepository::new();
         event_repository.conn().test_transaction::<_, Error, _>(|| {
             let event = EventInsertable::new(
