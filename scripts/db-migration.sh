@@ -1,6 +1,16 @@
 #!/bin/sh
 
-. .env
+echo $ENV
+
+if [ $ENV = "development" ]
+then
+  . config/.env-development
+elif [ $ENV = "staging" ]
+then
+  . config/.env-staging
+else
+  . config/.env-development
+fi
 
 dbtype=$1
 cmd=$2
