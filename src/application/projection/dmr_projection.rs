@@ -1,6 +1,8 @@
 use crate::application::event::Event;
 use crate::infrastructure::models::event_store::event::EventQueryable;
-use crate::infrastructure::models::read::dmr_projection::DMRProjectionInsertable;
+use crate::infrastructure::models::read::dmr_projection::{
+    DMRProjectionInsertable, DMRProjectionQueryable,
+};
 use crate::infrastructure::repository::dmr_projection_repository::DMRProjectionRepository;
 use crate::infrastructure::repository::event_repository::EventRepository;
 use chrono::NaiveDateTime;
@@ -257,6 +259,15 @@ mod tests {
 
     impl DMRProjectionRepository for FakeDMRProjectionRepository {
         fn new() -> Self { FakeDMRProjectionRepository {} }
+
+        fn find(
+            &self,
+            _repo_id: i64,
+            _from: NaiveDateTime,
+            _to: NaiveDateTime,
+        ) -> QueryResult<Vec<DMRProjectionQueryable>> {
+            Ok(vec![])
+        }
 
         fn persist_dmr(&self, _dmr_projection: DMRProjectionInsertable) -> QueryResult<usize> {
             Ok(1_usize)

@@ -1,9 +1,12 @@
 pub mod controller;
 
-pub fn pull_request_routes() -> Vec<rocket::Route> {
+pub fn routes() -> Vec<rocket::Route> {
     routes![
-        controller::pull_request_controller::open,
-        controller::pull_request_controller::assign,
-        controller::pull_request_controller::close,
+        // commands
+        controller::command::pull_request_controller::open,
+        controller::command::pull_request_controller::assign,
+        controller::command::pull_request_controller::close,
+        //queries
+        controller::query::dmr_controller::index,
     ]
 }

@@ -1,1 +1,2 @@
-pub mod pull_request_controller;
+pub mod command;
+pub mod query;
