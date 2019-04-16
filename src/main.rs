@@ -1,5 +1,6 @@
 #![feature(proc_macro_hygiene, decl_macro, custom_attribute)]
 
+#[macro_use]
 extern crate rocket_contrib;
 #[macro_use]
 extern crate serde_derive;

@@ -1,4 +1,5 @@
 pub mod controller;
+pub mod helpers;
 
 pub fn routes() -> Vec<rocket::Route> {
     routes![

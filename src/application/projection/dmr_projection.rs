@@ -1,8 +1,6 @@
 use crate::application::event::Event;
 use crate::infrastructure::models::event_store::event::EventQueryable;
-use crate::infrastructure::models::read::dmr_projection::{
-    DMRProjectionInsertable, DMRProjectionQueryable,
-};
+use crate::infrastructure::models::read::dmr_projection::DMRProjectionInsertable;
 use crate::infrastructure::repository::dmr_projection_repository::DMRProjectionRepository;
 use crate::infrastructure::repository::event_repository::EventRepository;
 use chrono::NaiveDateTime;
@@ -127,6 +125,7 @@ mod tests {
     use super::*;
     use crate::application::projection::helpers;
     use crate::infrastructure::models::event_store::event::EventInsertable;
+    use crate::infrastructure::models::read::dmr_projection::DMRProjectionQueryable;
     use chrono::Utc;
     use diesel::QueryResult;
 
