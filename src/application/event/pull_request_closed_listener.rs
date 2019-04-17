@@ -1,6 +1,6 @@
 use crate::application::event::pull_request_closed_event::PullRequestClosedEvent;
 use crate::application::event::Event::PullRequestClosed;
-use crate::application::projection::dmr_projector::DMRProjector;
+use crate::application::projection::dmr::dmr_projector::DMRProjector;
 use crate::application::projection::projector::Projector;
 use crate::infrastructure::models::event_store::event::{EventInsertable, EventPullRequestMeta};
 use crate::infrastructure::repository::dmr_projection_repository::DMRProjectionRepository;

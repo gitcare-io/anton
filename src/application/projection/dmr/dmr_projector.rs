@@ -1,4 +1,4 @@
-use crate::application::projection::dmr_projection::{DMRProjection, DMRProjectionIdentity};
+use crate::application::projection::dmr::dmr_projection::DMRProjection;
 use crate::application::projection::helpers;
 use crate::application::projection::projector::Projector;
 use crate::infrastructure::models::event_store::event::EventQueryable;
@@ -15,6 +15,7 @@ where
     dmr_projection_repository: &'b DMRR,
     timezone: String, // TODO: it should be configurable for each repo.
     target: f32,      // TODO: it should be configurable for each repo.
+    team_size: u64, // TODO: it should be configurable for each repo.
 }
 
 impl<'a, 'b, ER, DMRR> Projector<'a, 'b, ER, DMRR> for DMRProjector<'a, 'b, ER, DMRR>
@@ -27,19 +28,20 @@ where
             event_repository,
             dmr_projection_repository,
             timezone: String::from("Europe/Warsaw"),
-            target: 10_f32,
+            target: 10.0,
+            team_size: 2,
         }
     }
 
     fn project(&self, seq_num: i64) -> Result<(), &'static str> {
         let event = self.get_event(seq_num);
-        let repo_id = self.get_repo_id(&event);
 
         DMRProjection::new(
             self.event_repository,
             self.dmr_projection_repository,
-            DMRProjectionIdentity { repo_id },
+            self.get_repo_id(&event),
             self.target,
+            self.team_size,
             self.get_datetime(&event, "from"),
             self.get_datetime(&event, "to"),
         )
