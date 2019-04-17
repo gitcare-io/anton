@@ -13,12 +13,7 @@ pub enum Event {
     PullRequestClosed,
 }
 
-impl Event {
-    pub fn value(&self) -> &'static str {
-        match *self {
-            Event::PullRequestOpened => "pull_request_opened",
-            Event::PullRequestAssigned => "pull_request_assigned",
-            Event::PullRequestClosed => "pull_request_closed",
-        }
-    }
-}
+
+pub const PULL_REQUEST_OPENED: &'static str = "pull_request_opened";
+pub const PULL_REQUEST_ASSIGNED: &'static str = "pull_request_assigned";
+pub const PULL_REQUEST_CLOSED: &'static str = "pull_request_closed";

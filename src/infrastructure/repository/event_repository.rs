@@ -21,6 +21,7 @@ pub trait EventRepository {
         from: NaiveDateTime,
         to: NaiveDateTime,
     ) -> QueryResult<Vec<EventQueryable>>;
+    fn find_all(&self) -> QueryResult<Vec<EventQueryable>>;
     fn find_by_seq_num(&self, seq_num: i64) -> QueryResult<EventQueryable>;
 }
 
@@ -36,6 +37,12 @@ impl EventRepository for Repository {
 
     fn find_by_seq_num(&self, seq_n: i64) -> QueryResult<EventQueryable> {
         events.find(seq_n).first(self.conn())
+    }
+
+    fn find_all(&self) -> QueryResult<Vec<EventQueryable>> {
+        events
+            .order(seq_num.asc())
+            .load::<EventQueryable>(self.conn())
     }
 
     fn find_by_repo_and_type(

@@ -26,5 +26,6 @@ fn main() {
     application::event::register::register_events();
     rocket::ignite()
         .mount("/", infrastructure::api::routes())
+        .mount("/", infrastructure::regeneration::regeneration_routes())
         .launch();
 }

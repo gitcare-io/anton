@@ -7,20 +7,20 @@ pub fn register_events() {
         &EVENT_BUS,
         0,
         pull_request_opened_event::PullRequestOpenedEvent,
-        pull_request_opened_listener::execute
+        pull_request_opened_listener::PullRequestOpenedListener::execute
     );
 
     register_hook!(
         &EVENT_BUS,
         0,
         pull_request_assigned_event::PullRequestAssignedEvent,
-        pull_request_assigned_listener::execute
+        pull_request_assigned_listener::PullRequestAssignedListener::execute
     );
 
     register_hook!(
         &EVENT_BUS,
         0,
         pull_request_closed_event::PullRequestClosedEvent,
-        pull_request_closed_listener::execute
+        pull_request_closed_listener::PullRequestClosedListener::execute
     );
 }

@@ -1,4 +1,4 @@
-use crate::application::event::Event;
+use crate::application::event::PULL_REQUEST_CLOSED;
 use crate::infrastructure::models::event_store::event::EventQueryable;
 use crate::infrastructure::models::read::dmr_projection::DMRProjectionInsertable;
 use crate::infrastructure::repository::dmr_projection_repository::DMRProjectionRepository;
@@ -72,7 +72,7 @@ where
         Self {
             event_repository,
             dmr_projection_repository,
-            event_type: Event::PullRequestClosed.value(),
+            event_type: PULL_REQUEST_CLOSED,
             body: DMRProjectionBody {
                 id: Self::gen_key(repo_id, from, to),
                 repo_id,
@@ -311,10 +311,12 @@ mod tests {
             Ok(event_factory(
                 10,
                 "{ \"pull_request\": { \"merged\": true } }",
-                Event::PullRequestClosed.value(),
+                PULL_REQUEST_CLOSED,
                 "{}",
             ))
         }
+
+        fn find_all(&self) -> QueryResult<Vec<EventQueryable>> { Ok(vec![]) }
 
         fn find_by_repo_and_type(
             &self,
@@ -326,19 +328,19 @@ mod tests {
             let event1 = event_factory(
                 10,
                 r#"{ "pull_request": { "merged": true } }"#,
-                Event::PullRequestClosed.value(),
+                PULL_REQUEST_CLOSED,
                 r#"{ "user_id": 1 }"#,
             );
             let event2 = event_factory(
                 10,
                 r#"{ "pull_request": { "merged": false } }"#,
-                Event::PullRequestClosed.value(),
+                PULL_REQUEST_CLOSED,
                 r#"{ "user_id": 2 }"#,
             );
             let event3 = event_factory(
                 10,
                 r#"{ "pull_request": { "merged": true } }"#,
-                Event::PullRequestClosed.value(),
+                PULL_REQUEST_CLOSED,
                 r#"{ "user_id": 2 }"#,
             );
             Ok(vec![
