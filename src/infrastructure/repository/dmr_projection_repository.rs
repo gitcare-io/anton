@@ -7,6 +7,7 @@ use chrono::{NaiveDateTime, Utc};
 #[allow(unused_imports)]
 use diesel::Connection;
 use diesel::ExpressionMethods;
+use diesel::BoolExpressionMethods;
 use diesel::{QueryDsl, QueryResult, RunQueryDsl};
 
 pub trait DMRProjectionRepository {
@@ -41,8 +42,8 @@ impl DMRProjectionRepository for Repository {
     ) -> QueryResult<Vec<DMRProjectionQueryable>> {
         let query = dmrprojections
             .filter(repo_id.eq(_repo_id))
-            .filter(from.gt(_from))
-            .filter(to.lt(_to));
+            .filter(from.gt(_from).or(from.eq(_from)))
+            .filter(to.lt(_to).or(to.eq(_to)));
         query.load::<DMRProjectionQueryable>(self.conn())
     }
 }

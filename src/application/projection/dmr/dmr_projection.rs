@@ -316,7 +316,7 @@ mod tests {
             ))
         }
 
-        fn find_all(&self) -> QueryResult<Vec<EventQueryable>> { Ok(vec![]) }
+        fn find_all(&self, limit: i64, offset: i64) -> QueryResult<Vec<EventQueryable>> { Ok(vec![]) }
 
         fn find_by_repo_and_type(
             &self,
