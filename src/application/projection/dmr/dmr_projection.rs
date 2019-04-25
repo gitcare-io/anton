@@ -1,6 +1,8 @@
 use crate::application::event::PULL_REQUEST_CLOSED;
 use crate::infrastructure::models::event_store::event::EventQueryable;
-use crate::infrastructure::models::read::dmr_projection::DMRProjectionInsertable;
+use crate::infrastructure::models::read::dmr_projection::{
+    DMRProjectionInsertable, DMRProjectionQueryable,
+};
 use crate::infrastructure::repository::dmr_projection_repository::DMRProjectionRepository;
 use crate::infrastructure::repository::event_repository::EventRepository;
 use chrono::NaiveDateTime;
@@ -10,7 +12,7 @@ use serde_json::json;
 
 // DMR - Daily Merge Rate
 
-pub struct DMRProjection<'a, 'b, ER, DMRR>
+pub struct DMRProjection<'a, 'b, 'c, ER, DMRR>
 where
     ER: EventRepository + 'a,
     DMRR: DMRProjectionRepository + 'b,
@@ -18,6 +20,7 @@ where
     pub event_repository: &'a ER,
     pub dmr_projection_repository: &'b DMRR,
     pub event_type: &'static str,
+    pub event: &'c EventQueryable,
     pub body: DMRProjectionBody,
 }
 
@@ -51,7 +54,7 @@ pub struct DMRProjectionUserValue {
     pub index: f32,
 }
 
-impl<'a, 'b, ER, DMRR> DMRProjection<'a, 'b, ER, DMRR>
+impl<'a, 'b, 'c, ER, DMRR> DMRProjection<'a, 'b, 'c, ER, DMRR>
 where
     ER: EventRepository + 'a,
     DMRR: DMRProjectionRepository + 'b,
@@ -59,6 +62,7 @@ where
     pub fn new(
         event_repository: &'a ER,
         dmr_projection_repository: &'b DMRR,
+        event: &'c EventQueryable,
         repo_id: u64,
         target: f32,
         team_size: u64,
@@ -73,6 +77,7 @@ where
             event_repository,
             dmr_projection_repository,
             event_type: PULL_REQUEST_CLOSED,
+            event,
             body: DMRProjectionBody {
                 id: Self::gen_key(repo_id, from, to),
                 repo_id,
@@ -92,20 +97,27 @@ where
     }
 
     pub fn generate(mut self) -> Self {
-        let events = self.get_events();
-        self.body.data = events.iter().fold(self.body.data, |acc, i| {
-            let mut data = acc.clone();
-            if i.data["pull_request"]["merged"] == true {
-                data = Self::calculate_dmr_avg(&mut data);
-                data = Self::calculate_dmr_users(
-                    &mut data,
-                    i.meta["user_id"]
-                        .as_u64()
-                        .expect("DMR Projection: event.meta.user_id cannot convert to u64"),
-                );
+        if self.event.data["pull_request"]["merged"] == false {
+            return self;
+        }
+
+        let last_dmr_projection = self.dmr_projection_repository.find_one(
+            self.body.repo_id as i64,
+            self.body.from,
+            self.body.to,
+        );
+
+        match last_dmr_projection {
+            Ok(last_dmr) => {
+                self.calculate_dmr_avg(Some(last_dmr.clone()));
+                self.calculate_dmr_users(Some(last_dmr.clone()));
             }
-            data
-        });
+            _ => {
+                self.calculate_dmr_avg(None);
+                self.calculate_dmr_users(None);
+            }
+        }
+
         self
     }
 
@@ -123,54 +135,70 @@ where
 
     // private
 
-    pub fn calculate_dmr_avg(data: &DMRProjectionData) -> DMRProjectionData {
-        let mut result = data.clone();
-        result.avg.value += 1.0;
-        result.avg.index = result.avg.value / (result.target * result.team_size as f32);
-        result
-    }
-
-    pub fn calculate_dmr_users(data: &DMRProjectionData, user_id: u64) -> DMRProjectionData {
-        let mut result = data.clone();
-        let is_not_user_included = data.users.iter().find(|&x| x.user_id == user_id).is_none();
-
-        if is_not_user_included {
-            result.users.push(DMRProjectionUserValue {
-                user_id,
-                value: 0.0,
-                index: 0.0,
-            });
+    pub fn calculate_dmr_avg(&mut self, last_dmr: Option<DMRProjectionQueryable>) {
+        match last_dmr {
+            Some(last_dmr) => {
+                let last_dmr_data: DMRProjectionData =
+                    serde_json::from_value(last_dmr.data).unwrap();
+                self.body.data.avg.value = last_dmr_data.avg.value + 1.0;
+                self.body.data.avg.index = (last_dmr_data.avg.value + 1.0)
+                    / (self.body.data.target * self.body.data.team_size as f32);
+            }
+            None => {
+                self.body.data.avg.value = 1.0;
+                self.body.data.avg.index =
+                    1.0 / (self.body.data.target * self.body.data.team_size as f32);
+            }
         }
-
-        result.users = result
-            .users
-            .iter()
-            .map(|item| {
-                let mut value = item.value.clone();
-                let mut index = item.index.clone();
-                if item.user_id == user_id {
-                    value += 1.0;
-                    index = value / result.target;
-                }
-                DMRProjectionUserValue {
-                    user_id: item.user_id,
-                    value,
-                    index,
-                }
-            })
-            .collect::<Vec<DMRProjectionUserValue>>();
-        result
     }
 
-    fn get_events(&self) -> Vec<EventQueryable> {
-        self.event_repository
-            .find_by_repo_and_type(
-                self.body.repo_id,
-                self.event_type,
-                self.body.from,
-                self.body.to,
-            )
-            .expect("DMR projection: cannot find events")
+    pub fn calculate_dmr_users(&mut self, last_dmr: Option<DMRProjectionQueryable>) {
+        let user_id = self.event.meta["user_id"]
+            .as_u64()
+            .expect("DMR Projection: cannot convert event.meta.user_id to u64");
+        match last_dmr {
+            Some(last_dmr) => {
+                let last_dmr_data: DMRProjectionData =
+                    serde_json::from_value(last_dmr.data).unwrap();
+                let is_not_user_included = last_dmr_data
+                    .users
+                    .iter()
+                    .find(|&x| x.user_id == user_id)
+                    .is_none();
+
+                if is_not_user_included {
+                    self.body.data.users = last_dmr_data.users.clone();
+                    self.body.data.users.push(DMRProjectionUserValue {
+                        user_id,
+                        value: 1.0,
+                        index: 1.0 / self.body.data.target,
+                    });
+                } else {
+                    self.body.data.users = last_dmr_data
+                        .users
+                        .iter()
+                        .map(|item| {
+                            let mut value = item.value.clone();
+                            let mut index = item.index.clone();
+                            if item.user_id == user_id {
+                                value += 1.0;
+                                index = value / self.body.data.target;
+                            }
+                            DMRProjectionUserValue {
+                                user_id: item.user_id,
+                                value,
+                                index,
+                            }
+                        })
+                        .collect::<Vec<DMRProjectionUserValue>>();
+                }
+            }
+            None => self.body.data.users.push(DMRProjectionUserValue {
+                user_id,
+                value: 1.0,
+                index: 1.0 / self.body.data.target,
+            }),
+        }
     }
 
     fn gen_key(repo_id: u64, from: NaiveDateTime, to: NaiveDateTime) -> String {
@@ -197,9 +225,11 @@ mod tests {
         let dmr_projection_repository = FakeDMRProjectionRepository::new();
         let timezone = timezone_factory();
         let repo_id = 10_u64;
+        let event = event_repository.find_by_seq_num(1_i64).unwrap();
         let dmr_projection = DMRProjection::new(
             &event_repository,
             &dmr_projection_repository,
+            &event,
             repo_id,
             10.0,
             2_u64,
@@ -225,10 +255,12 @@ mod tests {
         let repo_id = 10_u64;
         let target = 11.0;
         let team_size = 2_u64;
+        let event = event_repository.find_by_seq_num(1_i64).unwrap();
         let timezone = timezone_factory();
         let dmr_projection = DMRProjection::new(
             &event_repository,
             &dmr_projection_repository,
+            &event,
             repo_id,
             target,
             team_size,
@@ -242,8 +274,8 @@ mod tests {
                 target: 11.0,
                 team_size: 2_u64,
                 avg: DMRProjectionAvgValue {
-                    value: 3.0,
-                    index: 3.0 / (team_size as f32 * target)
+                    value: 4.0,
+                    index: 4.0 / (team_size as f32 * target)
                 },
                 users: vec![
                     DMRProjectionUserValue {
@@ -253,8 +285,8 @@ mod tests {
                     },
                     DMRProjectionUserValue {
                         user_id: 2,
-                        value: 1.0,
-                        index: 1.0 / target,
+                        value: 2.0,
+                        index: 2.0 / target,
                     }
                 ]
             }
@@ -267,12 +299,14 @@ mod tests {
         let event_repository = FakeEventRepository::new();
         let dmr_projection_repository = FakeDMRProjectionRepository::new();
         let repo_id = 10_u64;
+        let event = event_repository.find_by_seq_num(1_i64).unwrap();
         let target = 0.0;
         let team_size = 2_u64;
         let timezone = timezone_factory();
         DMRProjection::new(
             &event_repository,
             &dmr_projection_repository,
+            &event,
             repo_id,
             target,
             team_size,
@@ -310,13 +344,19 @@ mod tests {
         fn find_by_seq_num(&self, _seq_n: i64) -> QueryResult<EventQueryable> {
             Ok(event_factory(
                 10,
-                "{ \"pull_request\": { \"merged\": true } }",
+                r#"{
+                    "pull_request": {
+                        "merged": true
+                    }
+                }"#,
                 PULL_REQUEST_CLOSED,
-                "{}",
+                r#"{ "user_id": 2 }"#,
             ))
         }
 
-        fn find_all(&self, limit: i64, offset: i64) -> QueryResult<Vec<EventQueryable>> { Ok(vec![]) }
+        fn find_all(&self, _limit: i64, _offset: i64) -> QueryResult<Vec<EventQueryable>> {
+            Ok(vec![])
+        }
 
         fn find_by_repo_and_type(
             &self,
@@ -325,30 +365,7 @@ mod tests {
             _from: NaiveDateTime,
             _to: NaiveDateTime,
         ) -> QueryResult<Vec<EventQueryable>> {
-            let event1 = event_factory(
-                10,
-                r#"{ "pull_request": { "merged": true } }"#,
-                PULL_REQUEST_CLOSED,
-                r#"{ "user_id": 1 }"#,
-            );
-            let event2 = event_factory(
-                10,
-                r#"{ "pull_request": { "merged": false } }"#,
-                PULL_REQUEST_CLOSED,
-                r#"{ "user_id": 2 }"#,
-            );
-            let event3 = event_factory(
-                10,
-                r#"{ "pull_request": { "merged": true } }"#,
-                PULL_REQUEST_CLOSED,
-                r#"{ "user_id": 2 }"#,
-            );
-            Ok(vec![
-                event1.clone(),
-                event1.clone(),
-                event2.clone(),
-                event3.clone(),
-            ])
+            Ok(vec![])
         }
     }
 
@@ -362,6 +379,44 @@ mod tests {
             _to: NaiveDateTime,
         ) -> QueryResult<Vec<DMRProjectionQueryable>> {
             Ok(vec![])
+        }
+
+        fn find_one(
+            &self,
+            _repo_id: i64,
+            _from: NaiveDateTime,
+            _to: NaiveDateTime,
+        ) -> QueryResult<DMRProjectionQueryable> {
+            let projection_data = r#"
+                {
+                    "target": 11.0,
+                    "team_size": 2,
+                    "avg": {
+                        "value": 3.0,
+                        "index": 0.1363636364
+                    },
+                    "users": [
+                        {
+                            "user_id": 1,
+                            "value": 2.0,
+                            "index": 0.1818181818
+                        },
+                        {
+                            "user_id": 2,
+                            "value": 1.0,
+                            "index": 0.09090909091
+                        }
+                    ]
+                }
+            "#;
+            Ok(DMRProjectionQueryable {
+                id: String::from(""),
+                repo_id: 1_i64,
+                from: helpers::today_midnight(&timezone_factory()),
+                to: helpers::tomorrow_midnight(&timezone_factory()),
+                projected_at: Utc::now().naive_utc(),
+                data: serde_json::from_str(projection_data).unwrap(),
+            })
         }
 
         fn persist_dmr(&self, _dmr_projection: DMRProjectionInsertable) -> QueryResult<usize> {

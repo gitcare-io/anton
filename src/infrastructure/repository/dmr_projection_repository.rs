@@ -4,22 +4,30 @@ use crate::infrastructure::{
     repository::repository::{CommonRepository, Repository, __construct},
 };
 use chrono::{NaiveDateTime, Utc};
+use diesel::BoolExpressionMethods;
 #[allow(unused_imports)]
 use diesel::Connection;
 use diesel::ExpressionMethods;
-use diesel::BoolExpressionMethods;
 use diesel::{QueryDsl, QueryResult, RunQueryDsl};
 
 pub trait DMRProjectionRepository {
     fn new() -> Self;
 
     fn persist_dmr(&self, dmr_projection: DMRProjectionInsertable) -> QueryResult<usize>;
+
     fn find(
         &self,
         _repo_id: i64,
         _from: NaiveDateTime,
         _to: NaiveDateTime,
     ) -> QueryResult<Vec<DMRProjectionQueryable>>;
+
+    fn find_one(
+        &self,
+        _repo_id: i64,
+        _from: NaiveDateTime,
+        _to: NaiveDateTime,
+    ) -> QueryResult<DMRProjectionQueryable>;
 }
 
 impl DMRProjectionRepository for Repository {
@@ -40,11 +48,24 @@ impl DMRProjectionRepository for Repository {
         _from: NaiveDateTime,
         _to: NaiveDateTime,
     ) -> QueryResult<Vec<DMRProjectionQueryable>> {
-        let query = dmrprojections
+        dmrprojections
             .filter(repo_id.eq(_repo_id))
             .filter(from.gt(_from).or(from.eq(_from)))
-            .filter(to.lt(_to).or(to.eq(_to)));
-        query.load::<DMRProjectionQueryable>(self.conn())
+            .filter(to.lt(_to).or(to.eq(_to)))
+            .load::<DMRProjectionQueryable>(self.conn())
+    }
+
+    fn find_one(
+        &self,
+        _repo_id: i64,
+        _from: NaiveDateTime,
+        _to: NaiveDateTime,
+    ) -> QueryResult<DMRProjectionQueryable> {
+        dmrprojections
+            .filter(repo_id.eq(_repo_id))
+            .filter(from.gt(_from).or(from.eq(_from)))
+            .filter(to.lt(_to).or(to.eq(_to)))
+            .first(self.conn())
     }
 }
 

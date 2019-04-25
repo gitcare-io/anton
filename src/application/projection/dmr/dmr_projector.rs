@@ -39,6 +39,7 @@ where
         DMRProjection::new(
             self.event_repository,
             self.dmr_projection_repository,
+            &event,
             self.get_repo_id(&event),
             self.target,
             self.team_size,
